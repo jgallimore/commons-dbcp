@@ -16,8 +16,10 @@
  */
 package org.apache.commons.dbcp2;
 
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
@@ -610,6 +612,8 @@ public class BasicDataSource implements DataSource, BasicDataSourceMXBean, MBean
         } else {
             gop = new GenericObjectPool<>(factory, poolConfig);
         }
+
+        gop.setLogWriter(new PrintWriter(new LogWriter(log)));
         return gop;
     }
 
@@ -2466,4 +2470,28 @@ public class BasicDataSource implements DataSource, BasicDataSourceMXBean, MBean
         config.setJmxNamePrefix(Constants.JMX_CONNECTION_POOL_PREFIX);
     }
 
+    private class LogWriter extends Writer {
+        private final Log log;
+        private StringBuilder sb = new StringBuilder();
+
+        public LogWriter(Log log) {
+            this.log = log;
+        }
+
+        @Override
+        public void write(char[] cbuf, int off, int len) throws IOException {
+            sb.append(cbuf, off, len);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            log.info(sb.toString());
+            sb = new StringBuilder();
+        }
+
+        @Override
+        public void close() throws IOException {
+
+        }
+    }
 }
